@@ -1,0 +1,194 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+
+<style>
+    .cityName {
+        cursor: pointer;
+        min-width: 125px
+    }
+</style>
+<div class="container mb-5">
+    <div class="row">
+        <div class="col-sm">
+            <button class="cityName alert alert-primary  text-center text-dark" id="Amsterdam">
+                Amsterdam
+                <div class="spinner-border spinner-border-sm cityName-spinner d-none" role="status">
+                    <span class="sr-only"></span>
+                </div>
+            </button>
+        </div>
+        <div class="col-sm">
+            <button class="cityName alert alert-primary text-center text-dark text-light" id="Berlin">
+                Berlin
+                <div class="spinner-border spinner-border-sm cityName-spinner d-none" role="status">
+                    <span class="sr-only"></span>
+                </div>
+            </button>
+        </div>
+        <div class="col-sm">
+            <button class="cityName alert alert-primary text-center text-dark text-light" id="Copenhagen">
+                Copenhagen
+                <div class="spinner-border spinner-border-sm cityName-spinner d-none" role="status">
+                    <span class="sr-only"></span>
+                </div>
+            </button>
+        </div>
+        <div class="col-sm">
+            <button class="cityName alert alert-primary text-center text-dark text-light" id="Brussels">
+                Brussels
+                <div class="spinner-border spinner-border-sm cityName-spinner d-none" role="status">
+                    <span class="sr-only"></span>
+                </div>
+            </button>
+        </div>
+        <div class="col-sm">
+            <button class="cityName alert alert-primary text-center text-dark text-light" id="Milan">
+                Milan
+                <div class="spinner-border spinner-border-sm cityName-spinner d-none" role="status">
+                    <span class="sr-only"></span>
+                </div>
+            </button>
+        </div>
+        <div class="col-sm">
+            <button class="cityName alert alert-primary text-center text-dark text-light" id="London">
+                London
+                <div class="spinner-border spinner-border-sm cityName-spinner d-none" role="status">
+                    <span class="sr-only"></span>
+                </div>
+            </button>
+        </div>
+        <div class="col-sm">
+            <button class="cityName alert alert-primary text-center text-dark text-light" id="Paris">
+                Paris
+                <div class="spinner-border spinner-border-sm cityName-spinner d-none" role="status">
+                    <span class="sr-only"></span>
+                </div>
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div id="chartContainer" style="height: 300px; width: 100%;" class="mb-5">
+        </div>
+        <div id="chartContainerYearly" style="height: 200px; width: 100%;">
+        </div>
+
+    </div>
+</div>
+
+<script src="https://canvasjs.com/assets/script/jquery-1.11.1.min.js"></script>
+<script>
+    $('.cityName').click(function() {
+
+        $(this).children().first().removeClass('d-none')
+
+        var id = $(this).attr('id')
+        loadBikeData(id);
+
+        $('.cityName').each(function() {
+            $(this).removeClass('alert-success');
+            $(this).prop('disabled', true);
+        });
+
+        $(this).addClass('alert-success');
+    });
+
+    function loadBikeData(cityName) {
+        var resultArrayMonthly = [];
+        var resultArrayYearly = [];
+        $.ajax({
+            url: '/home/GetData',
+            type: "GET",
+            data: {
+                cityName: cityName
+            },
+            datatype: "JSON",
+            success: function(result) {
+                $.each(result, function(key, value) {
+                    var dateProperty = key.split("-");
+
+                      resultArrayMonthly.push({
+                        x: new Date(dateProperty[0],dateProperty[1]),
+                        y: value
+                    });
+
+                    resultArrayYearly.push({
+                        label: dateProperty[0],
+                        y: value
+                    });
+                });
+
+                var options = {
+                    animationEnabled: true,
+                    title: {
+                        text: "Monthly Stolen Bikes for " + cityName,
+                        fontSize: 20
+                    },
+                    axisX: {
+                        valueFormatString: "MMM-YY"
+                    },
+                    axisY: {
+                        title: "QUANTITY",
+                    },
+                    data: [{
+                        xValueFormatString: "MMM-YY",
+                        type: "spline",
+                        dataPoints: resultArrayMonthly
+                    }]
+                };
+
+                    $("#chartContainerYearly").CanvasJSChart({
+                        animationEnabled: true,
+                        animationDuration: 2000,
+                        title: {
+                            text: "Yearly Stolen Bikes for " + cityName,
+                        },
+                        axisY: {
+                            title: "QUANTITY",
+                            includeZero: false
+                        },
+                        data: [{
+                            type: "column",
+                            toolTipContent: "{label}: {y}",
+                            dataPoints: groupByYear(resultArrayYearly.reverse())
+                        }]
+                    });
+
+                $('.cityName-spinner').each(function() {
+                    $(this).addClass('d-none');
+                });
+                $('.cityName').each(function() {
+                    $(this).prop('disabled', false);
+                });
+                $("#chartContainer").CanvasJSChart(options);
+            },
+            error: function() {
+                alert("Something went wrong..")
+            }
+        });
+    };
+
+
+    function groupByYear(objArr)
+    {
+        console.log('wef')
+
+    // first, convert data into a Map with reduce
+    let counts = objArr.reduce((prev, curr) => {
+      let count = prev.get(curr.label) || 0;
+      prev.set(curr.label, curr.y + count);
+      return prev;
+    }, new Map());
+
+    // then, map your counts object back to an array
+    let reducedObjArr = [...counts].map(([label, y]) => {
+      return {label, y}
+    })
+
+    return reducedObjArr;
+    }
+
+</script>
