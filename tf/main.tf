@@ -1,5 +1,13 @@
+terraform {
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "=2.99.0"
+    }
+  }
+}
+
 provider "azurerm" {
-  version = "=2.99.0"
   features {}
 }
 
@@ -15,29 +23,34 @@ resource "azurerm_resource_group" "rg" {
 ## AppServicePlan ##
 ####################
 resource "azurerm_app_service_plan" "asp" {
-  name                = "${var.resourcePrefix}-asp"
+  name                = "${var.resourcePrefix}-asplan"
   location            = var.location
   resource_group_name = azurerm_resource_group.rg.name
 
-  kind                = "Linux"
-  reserved            = true
-
   sku {
-    tier = "Free"
-    size = "F1"
+    tier = "Basic"
+    size = "B1"
   }
 }
 
-resource "azurerm_linux_web_app" "app" {
+resource "azurerm_app_service" "app" {
   name                = "${var.resourcePrefix}-app"
   location            = var.location
   resource_group_name = azurerm_app_service_plan.asp.resource_group_name
 
-  service_plan_id     = azurerm_service_plan.rg.id
+  app_service_plan_id = azurerm_app_service_plan.asp.id
 
-  site_config {}
-
-  app_settings = {
-    WEBSITE_RUN_FROM_PACKAGE = var.appPackageUrl
+  site_config {
+    dotnet_framework_version  = "v4.0"
+    use_32_bit_worker_process = true
   }
+
+  source_control {
+    repo_url           = "https://github.com/unalakyuz/BikeTheft"
+    branch             = "master"
+    manual_integration = true
+    use_mercurial      = false
+  }
+
+  app_settings = {}
 }
