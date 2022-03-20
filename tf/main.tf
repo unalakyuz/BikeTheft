@@ -7,8 +7,8 @@ provider "azurerm" {
 #### RG ############
 ####################
 resource "azurerm_resource_group" "rg" {
-  name                          = "${var.resourcePrefix}-web-rg"
-  location                      = var.location
+  name                = "${var.resourcePrefix}-web-rg"
+  location            = var.location
 }
 
 ####################
@@ -38,5 +38,6 @@ resource "azurerm_linux_web_app" "app" {
   site_config {}
 
   app_settings = {
+    WEBSITE_RUN_FROM_PACKAGE = var.appPackageUrl
   }
 }

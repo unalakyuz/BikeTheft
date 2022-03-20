@@ -4,3 +4,6 @@ variable "location" {
 variable "resourcePrefix" {
   type = string
 }
+variable "appPackageUrl" {
+  type = string
+}
