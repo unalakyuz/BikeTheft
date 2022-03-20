@@ -1,3 +1,4 @@
 location       = "westeurope"
 resourcePrefix = "sw-we"
-appPackageUrl  = "https://github.com/unalakyuz/BikeTheft/blob/master/pub.zip"
+repoUrl        = "https://github.com/unalakyuz/BikeTheft"
+repoBranch     = "master"

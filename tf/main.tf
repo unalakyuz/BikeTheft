@@ -23,7 +23,7 @@ resource "azurerm_resource_group" "rg" {
 ## AppServicePlan ##
 ####################
 resource "azurerm_app_service_plan" "asp" {
-  name                = "${var.resourcePrefix}-asplan"
+  name                = "${var.resourcePrefix}-asp"
   location            = var.location
   resource_group_name = azurerm_resource_group.rg.name
 
@@ -46,8 +46,8 @@ resource "azurerm_app_service" "app" {
   }
 
   source_control {
-    repo_url           = "https://github.com/unalakyuz/BikeTheft"
-    branch             = "master"
+    repo_url           = var.repoUrl
+    branch             = var.repoBranch
     manual_integration = true
     use_mercurial      = false
   }
