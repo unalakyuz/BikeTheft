@@ -176,14 +176,12 @@
     {
         console.log('wef')
 
-    // first, convert data into a Map with reduce
     let counts = objArr.reduce((prev, curr) => {
       let count = prev.get(curr.label) || 0;
       prev.set(curr.label, curr.y + count);
       return prev;
     }, new Map());
 
-    // then, map your counts object back to an array
     let reducedObjArr = [...counts].map(([label, y]) => {
       return {label, y}
     })
