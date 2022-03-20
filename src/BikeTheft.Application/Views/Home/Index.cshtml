@@ -1,7 +1,7 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Bike Theft";
 }
-
+@model IList<string>
 <style>
     .cityName {
         cursor: pointer;
@@ -10,62 +10,17 @@
 </style>
 <div class="container mb-5">
     <div class="row">
-        <div class="col-sm">
-            <button class="cityName alert alert-primary  text-center text-dark" id="Amsterdam">
-                Amsterdam
-                <div class="spinner-border spinner-border-sm cityName-spinner d-none" role="status">
-                    <span class="sr-only"></span>
-                </div>
-            </button>
-        </div>
-        <div class="col-sm">
-            <button class="cityName alert alert-primary text-center text-dark text-light" id="Berlin">
-                Berlin
-                <div class="spinner-border spinner-border-sm cityName-spinner d-none" role="status">
-                    <span class="sr-only"></span>
-                </div>
-            </button>
-        </div>
-        <div class="col-sm">
-            <button class="cityName alert alert-primary text-center text-dark text-light" id="Copenhagen">
-                Copenhagen
-                <div class="spinner-border spinner-border-sm cityName-spinner d-none" role="status">
-                    <span class="sr-only"></span>
-                </div>
-            </button>
-        </div>
-        <div class="col-sm">
-            <button class="cityName alert alert-primary text-center text-dark text-light" id="Brussels">
-                Brussels
-                <div class="spinner-border spinner-border-sm cityName-spinner d-none" role="status">
-                    <span class="sr-only"></span>
-                </div>
-            </button>
-        </div>
-        <div class="col-sm">
-            <button class="cityName alert alert-primary text-center text-dark text-light" id="Milan">
-                Milan
-                <div class="spinner-border spinner-border-sm cityName-spinner d-none" role="status">
-                    <span class="sr-only"></span>
-                </div>
-            </button>
-        </div>
-        <div class="col-sm">
-            <button class="cityName alert alert-primary text-center text-dark text-light" id="London">
-                London
-                <div class="spinner-border spinner-border-sm cityName-spinner d-none" role="status">
-                    <span class="sr-only"></span>
-                </div>
-            </button>
-        </div>
-        <div class="col-sm">
-            <button class="cityName alert alert-primary text-center text-dark text-light" id="Paris">
-                Paris
-                <div class="spinner-border spinner-border-sm cityName-spinner d-none" role="status">
-                    <span class="sr-only"></span>
-                </div>
-            </button>
-        </div>
+        @foreach (var city in Model)
+        {
+            <div class="col-sm">
+                <button class="cityName alert alert-primary  text-center text-dark" id="@city">
+                    @city
+                    <div class="spinner-border spinner-border-sm cityName-spinner d-none" role="status">
+                        <span class="sr-only"></span>
+                    </div>
+                </button>
+            </div>
+        }
     </div>
 </div>
 
@@ -75,12 +30,12 @@
         </div>
         <div id="chartContainerYearly" style="height: 200px; width: 100%;">
         </div>
-
     </div>
 </div>
 
 <script src="https://canvasjs.com/assets/script/jquery-1.11.1.min.js"></script>
 <script>
+    //display&hide city buttons
     $('.cityName').click(function() {
 
         $(this).children().first().removeClass('d-none')
@@ -110,8 +65,8 @@
                 $.each(result, function(key, value) {
                     var dateProperty = key.split("-");
 
-                      resultArrayMonthly.push({
-                        x: new Date(dateProperty[0],dateProperty[1]),
+                    resultArrayMonthly.push({
+                        x: new Date(dateProperty[0], dateProperty[1]),
                         y: value
                     });
 
@@ -121,7 +76,7 @@
                     });
                 });
 
-                var options = {
+                $("#chartContainer").CanvasJSChart({
                     animationEnabled: true,
                     title: {
                         text: "Monthly Stolen Bikes for " + cityName,
@@ -138,24 +93,25 @@
                         type: "spline",
                         dataPoints: resultArrayMonthly
                     }]
-                };
+                });
 
-                    $("#chartContainerYearly").CanvasJSChart({
-                        animationEnabled: true,
-                        animationDuration: 2000,
-                        title: {
-                            text: "Yearly Stolen Bikes for " + cityName,
-                        },
-                        axisY: {
-                            title: "QUANTITY",
-                            includeZero: false
-                        },
-                        data: [{
-                            type: "column",
-                            toolTipContent: "{label}: {y}",
-                            dataPoints: groupByYear(resultArrayYearly.reverse())
-                        }]
-                    });
+                $("#chartContainerYearly").CanvasJSChart({
+                    animationEnabled: true,
+                    animationDuration: 2000,
+                    title: {
+                        text: "Yearly Stolen Bikes for " + cityName,
+                        fontSize: 20
+                    },
+                    axisY: {
+                        title: "QUANTITY",
+                        includeZero: false
+                    },
+                    data: [{
+                        type: "column",
+                        toolTipContent: "{label}: {y}",
+                        dataPoints: groupResponseDataByYear(resultArrayYearly.reverse())
+                    }]
+                });
 
                 $('.cityName-spinner').each(function() {
                     $(this).addClass('d-none');
@@ -163,7 +119,6 @@
                 $('.cityName').each(function() {
                     $(this).prop('disabled', false);
                 });
-                $("#chartContainer").CanvasJSChart(options);
             },
             error: function() {
                 alert("Something went wrong..")
@@ -171,22 +126,17 @@
         });
     };
 
+    function groupResponseDataByYear(objArr) {
 
-    function groupByYear(objArr)
-    {
-        console.log('wef')
+        let counts = objArr.reduce((prev, curr) => {
+            let count = prev.get(curr.label) || 0;
+            prev.set(curr.label, curr.y + count);
+            return prev;
+        }, new Map());
 
-    let counts = objArr.reduce((prev, curr) => {
-      let count = prev.get(curr.label) || 0;
-      prev.set(curr.label, curr.y + count);
-      return prev;
-    }, new Map());
-
-    let reducedObjArr = [...counts].map(([label, y]) => {
-      return {label, y}
-    })
-
-    return reducedObjArr;
+        let reducedObjArr = [...counts].map(([label, y]) => {
+            return { label, y }
+        });
+        return reducedObjArr;
     }
-
 </script>

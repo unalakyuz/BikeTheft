@@ -16,19 +16,14 @@ namespace BikeTheft.Application.Controllers
 
         public IActionResult Index()
         {
-            return View();
+            var cities = _bikeTheftService.GetCities();
+            return View(cities);
         }
 
         public async Task<JsonResult> GetData(string cityName)
         {
             var result = await _bikeTheftService.GetStolenBikesCountByCity(cityName);
-
             return new JsonResult(result);
-        }
-
-        public IActionResult Privacy()
-        {
-            return View();
         }
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]

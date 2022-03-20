@@ -1,21 +1,27 @@
+using BikeTheft.Application.Filters;
 using BikeTheft.Service;
+using BikeTheft.Service.Settings;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 builder.Services.AddControllersWithViews();
 
 builder.Services.AddScoped<IBikeTheftService, BikeTheftService>();
 
+builder.Services.Configure<BikeIndexApiSettings>(builder.Configuration.GetSection(nameof(BikeIndexApiSettings)));
+
 builder.Services.AddHttpClient("BikeIndex");
+
+builder.Services.AddMvc(options =>
+{
+    options.Filters.Add<HttpGlobalExceptionFilter>();
+});
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 

@@ -1,87 +1,101 @@
-﻿using System.Text.Json;
+﻿using BikeTheft.Service.Response;
+using BikeTheft.Service.Settings;
+using Microsoft.Extensions.Options;
+using System.Text.Json;
 
 namespace BikeTheft.Service
 {
     public class BikeTheftService : IBikeTheftService
     {
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IOptions<BikeIndexApiSettings> _bikeIndexApiSettings;
 
-        public BikeTheftService(IHttpClientFactory httpClientFactory)
+        public BikeTheftService(
+            IHttpClientFactory httpClientFactory,
+            IOptions<BikeIndexApiSettings> clientOptions)
         {
             _httpClientFactory = httpClientFactory;
+            _bikeIndexApiSettings = clientOptions;
         }
 
-        public async Task<Dictionary<string, int>> GetStolenBikesCountByCity(string cityName)
+        //Data caching is suitable here cause we don't need the real time data for this task.
+        public async Task<Dictionary<string, int>> GetStolenBikesCountByCity(string location)
         {
             var httpClient = _httpClientFactory.CreateClient("BikeIndex");
 
-            bool hasPage = true;
-            int page = 1;
+            int pageNumber = 1;
+            bool hasNextPage = true;
             int stolenBikesCount = 0;
+            var result = new Dictionary<string, int>();
 
-            var dictionary = new Dictionary<string, int>();
-
-            try
+            do
             {
-                do
+                var apiResult = await httpClient.GetAsync(BuildRequestUrl(pageNumber, location));
+
+                if (apiResult.IsSuccessStatusCode)
                 {
-                    var apiResult = await httpClient.GetAsync("https://bikeindex.org:443/api/v3/search?page=" + page + "&per_page=100&location=" + cityName + "&distance=100&stolenness=proximity");
+                    var apiStreamResult = await apiResult.Content.ReadAsStreamAsync();
+                    var apiObjectResult = JsonSerializer.Deserialize<ApiResponseDto>(apiStreamResult, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-                    if (apiResult.IsSuccessStatusCode)
+                    if (apiObjectResult != null && apiObjectResult.Bikes != null && apiObjectResult.Bikes.Any())
                     {
-                        var apiStreamResult = await apiResult.Content.ReadAsStreamAsync();
+                        stolenBikesCount += apiObjectResult.Bikes.Count(x => x.Stolen is true);
+                        var orderedResult = apiObjectResult.Bikes.OrderByDescending(x => x.Date_Stolen);
 
-                        var result = JsonSerializer.Deserialize<ApiResponseObject>(apiStreamResult, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
-                        if (result != null && result.Bikes != null && result.Bikes.Any())
+                        foreach (var bike in orderedResult)
                         {
-                            stolenBikesCount += result.Bikes.Count(x => x.Stolen is true);
-                            page++;
-
-                            var orderedResult = result.Bikes.OrderByDescending(x => x.Date_Stolen);
-
-                            foreach (var bike in orderedResult)
+                            if (bike.Date_Stolen != null)
                             {
-                                if (bike.Date_Stolen != null)
-                                {
-                                    var date = DateTimeOffset.FromUnixTimeSeconds(Convert.ToInt64(bike.Date_Stolen)).DateTime;
+                                var date = BuildDateTime(bike.Date_Stolen.Value);
 
-                                    if (!dictionary.ContainsKey($"{date.Year}-{date.Month}"))
-                                    {
-                                        dictionary.Add($"{date.Year}-{date.Month}", 1);
-                                    }
-                                    else
-                                    {
-                                        dictionary.TryGetValue($"{date.Year}-{date.Month}", out int currentCount);
-                                        dictionary[$"{date.Year}-{date.Month}"] = currentCount + 1;
-                                    }
+                                if (!result.ContainsKey(BuildDictionaryKey(date)))
+                                {
+                                    result.Add(BuildDictionaryKey(date), 1);
+                                }
+                                else
+                                {
+                                    result.TryGetValue(BuildDictionaryKey(date), out int total);
+                                    result[BuildDictionaryKey(date)] = total + 1;
                                 }
                             }
                         }
-                        else
-                        {
-                            hasPage = false;
-                        }
+                        pageNumber++;
                     }
-                } while (hasPage);
-            }
-
-            catch (Exception ex)
-            {
-                throw;
-            }
-            return dictionary;
+                    else
+                    {
+                        hasNextPage = false;
+                    }
+                }
+                else
+                {
+                    throw new Exception("Request failed for bike index api.");
+                }
+            } while (hasNextPage);
+            return result;
         }
-    }
 
-    public class ApiResponseObject
-    {
-        public IList<Bike>? Bikes { get; set; }
-    }
+        public IList<string> GetCities()
+        {
+            return _bikeIndexApiSettings.Value.Cities.Split(",");
+        }
 
-    public class Bike
-    {
-        public int? Date_Stolen { get; set; }
-        public bool? Stolen { get; set; }
+        private static DateTime BuildDateTime(long date)
+        {
+            return DateTimeOffset.FromUnixTimeSeconds(Convert.ToInt64(date)).DateTime;
+        }
+
+        private static string BuildDictionaryKey(DateTime date)
+        {
+            return $"{date.Year}-{date.Month}";
+        }
+
+        private string BuildRequestUrl(int pageNumber, string location)
+        {
+            var perPage = _bikeIndexApiSettings.Value.PerPage;
+            var distance = _bikeIndexApiSettings.Value.Distance;
+            var apiBaseUrl = _bikeIndexApiSettings.Value.ApiBaseUrl;
+
+            return $"{apiBaseUrl}search?page={pageNumber}&per_page={perPage}&location={location}&distance={distance}&stolenness=proximity";
+        }
     }
 }
