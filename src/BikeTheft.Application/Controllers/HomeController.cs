@@ -22,7 +22,7 @@ namespace BikeTheft.Application.Controllers
 
         public async Task<JsonResult> GetData(string cityName)
         {
-            var result = await _bikeTheftService.GetStolenBikesCountByCity(cityName);
+            var result = await _bikeTheftService.GetStolenBikesByCity(cityName);
             return new JsonResult(result);
         }
 

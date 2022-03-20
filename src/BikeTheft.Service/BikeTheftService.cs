@@ -19,7 +19,7 @@ namespace BikeTheft.Service
         }
 
         //Data caching is suitable here cause we don't need the real time data for this task.
-        public async Task<Dictionary<string, int>> GetStolenBikesCountByCity(string location)
+        public async Task<Dictionary<string, int>> GetStolenBikesByCity(string location)
         {
             var httpClient = _httpClientFactory.CreateClient("BikeIndex");
 
